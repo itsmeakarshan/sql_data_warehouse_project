@@ -33,37 +33,42 @@ The warehouse follows the industry-standard **Medallion Architecture**, separati
 
 ```mermaid
 flowchart LR
-    subgraph Sources["📁 Source Systems"]
-        CRM["CRM System\n- cust_info.csv\n- prd_info.csv\n- sales_details.csv"]
-        ERP["ERP System\n- CUST_AZ12.csv\n- LOC_A101.csv\n- PX_CAT_G1V2.csv"]
+    subgraph Sources ["📁 Source Systems"]
+        CRM["CRM Data<br/>• cust_info.csv<br/>• prd_info.csv<br/>• sales_details.csv"]
+        ERP["ERP Data<br/>• CUST_AZ12.csv<br/>• LOC_A101.csv<br/>• PX_CAT_G1V2.csv"]
     end
 
-    subgraph Bronze["🥉 Bronze Layer (Raw Staging)"]
-        B_CRM["bronze.crm_cust_info\nbronze.crm_prd_info\nbronze.crm_sales_details"]
-        B_ERP["bronze.erp_loc_a101\nbronze.erp_cust_az12\nbronze.erp_px_cat_g1v2"]
-        Proc_B["Stored Procedure:\nbronze.load_bronze\n(BULK INSERT)"]
+    subgraph Bronze ["🥉 Bronze Layer (Raw Ingestion)"]
+        B_Proc["Stored Procedure:<br/>bronze.load_bronze<br/>(BULK INSERT)"]
+        B_Tables[("Raw Tables<br/>• crm_cust_info<br/>• crm_prd_info<br/>• crm_sales_details<br/>• erp_loc_a101<br/>• erp_cust_az12<br/>• erp_px_cat_g1v2")]
     end
 
-    subgraph Silver["🥈 Silver Layer (Cleansed & Enriched)"]
-        S_CRM["silver.crm_cust_info\nsilver.crm_prd_info\nsilver.crm_sales_details"]
-        S_ERP["silver.erp_loc_a101\nsilver.erp_cust_az12\nsilver.erp_px_cat_g1v2"]
-        Proc_S["Stored Procedure:\nsilver.load_silver\n(ETL & Quality Rules)"]
+    subgraph Silver ["🥈 Silver Layer (Cleaned & Standardized)"]
+        S_Proc["Stored Procedure:<br/>silver.load_silver<br/>(ETL & Quality Rules)"]
+        S_Tables[("Cleaned Tables<br/>• crm_cust_info<br/>• crm_prd_info<br/>• crm_sales_details<br/>• erp_loc_a101<br/>• erp_cust_az12<br/>• erp_px_cat_g1v2")]
     end
 
-    subgraph Gold["🥇 Gold Layer (Star Schema)"]
-        Dim_C["gold.dim_customers\n(Surrogate Keys, Demographics)"]
-        Dim_P["gold.dim_products\n(Category Hierarchies, Active SCD)"]
-        Fact_S["gold.fact_sales\n(Sales Metrics, Transactional Facts)"]
+    subgraph Gold ["🥇 Gold Layer (Star Schema)"]
+        Dim_C["gold.dim_customers<br/>(Surrogate Keys, Demographics)"]
+        Dim_P["gold.dim_products<br/>(Categories, Active SCD)"]
+        Fact_S[("gold.fact_sales<br/>(Sales Metrics, Transaction Facts)")]
     end
 
-    subgraph BI["📊 Power BI Desktop"]
-        PBI["Interactive Dashboard\n- Star Schema Model\n- Executive KPIs\n- Trend & Demographic Insights"]
+    subgraph PowerBI ["📊 Power BI Desktop"]
+        PBI["Interactive Reports<br/>• Executive KPIs<br/>• Sales Trends<br/>• Customer Demographics"]
     end
 
-    Sources -->|Bulk Ingest| Bronze
-    Bronze -->|Transform & Deduplicate| Silver
-    Silver -->|Dimensional Modeling (Views)| Gold
-    Gold -->|Direct / Import Connection| BI
+    CRM --> B_Proc
+    ERP --> B_Proc
+    B_Proc --> B_Tables
+    B_Tables --> S_Proc
+    S_Proc --> S_Tables
+    S_Tables --> Dim_C
+    S_Tables --> Dim_P
+    S_Tables --> Fact_S
+    Dim_C --> PBI
+    Dim_P --> PBI
+    Fact_S --> PBI
 ```
 
 ---
@@ -82,7 +87,7 @@ flowchart LR
 - **Key Transformations ([proc_load_silver.sql](file:///Users/akarshanrasyal/Projects/Projects/sql-data-warehouse-project-main/scripts/silver/proc_load_silver.sql)):**
   - **Deduplication:** Window functions (`ROW_NUMBER() OVER (PARTITION BY cst_id ORDER BY cst_create_date DESC)`) to retain the latest customer records.
   - **Data Hygiene:** `TRIM()` applied across text fields; leading prefix removals (`NAS` in customer IDs).
-  - **Code Normalization:** Standardized marital status (`M` $\rightarrow$ `Married`, `S` $\rightarrow$ `Single`), gender (`M`/`F` $\rightarrow$ `Male`/`Female`), product lines, and country codes (`US`/`USA` $\rightarrow$ `United States`, `DE` $\rightarrow$ `Germany`).
+  - **Code Normalization:** Standardized marital status (`M` → `Married`, `S` → `Single`), gender (`M`/`F` → `Male`/`Female`), product lines, and country codes (`US`/`USA` → `United States`, `DE` → `Germany`).
   - **Integrity Fixes:** Handled negative or missing sales/price calculations (`sls_sales = sls_quantity * price`); sanitized invalid date integers to standard SQL `DATE`.
   - **SCD Tracking:** Derived dimension start and end dates using `LEAD()` window functions.
   - **Audit Metadata:** System column `dwh_create_date DATETIME2 DEFAULT GETDATE()` added to all tables.
@@ -129,7 +134,7 @@ A **Power BI Desktop** dashboard was created connecting directly to the **Gold L
 
 ### 🌟 Key Power BI Capabilities & Implementation:
 1. **Star Schema Data Modeling:** 
-   - Direct 1-to-many single-directional relationships established between `dim_customers` $\rightarrow$ `fact_sales` and `dim_products` $\rightarrow$ `fact_sales`.
+   - Direct 1-to-many single-directional relationships established between `dim_customers` → `fact_sales` and `dim_products` → `fact_sales`.
 2. **Core Metrics & DAX Measures:**
    - **Total Revenue / Sales**: `SUM(fact_sales[sales_amount])`
    - **Total Units Sold**: `SUM(fact_sales[quantity])`
@@ -228,7 +233,7 @@ Validate referential integrity and surrogate keys using [tests/quality_checks_go
 
 ### 6. Connect to Power BI Desktop
 1. Open **Power BI Desktop**.
-2. Select **Get Data** $\rightarrow$ **SQL Server**.
+2. Select **Get Data** → **SQL Server**.
 3. Enter your Server Name and Database Name: `DataWarehouse`.
 4. Select Data Connectivity mode (**Import** or **DirectQuery**).
 5. From the Navigator, select the three Gold layer views:
