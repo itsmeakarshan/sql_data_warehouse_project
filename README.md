@@ -1,9 +1,7 @@
 # Modern Enterprise SQL Data Warehouse & Power BI Analytics
 
 [![SQL Server](https://img.shields.io/badge/SQL%20Server-2019%2B-CC292B?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)](https://www.microsoft.com/sql-server)
-[![T-SQL](https://img.shields.io/badge/T--SQL-Stored%20Procedures-0078D4?style=for-the-badge&logo=microsoft-sql-server&logoColor=white)](https://learn.microsoft.com/sql/t-sql)
 [![Power BI](https://img.shields.io/badge/Power%20BI-Desktop%20Analytics-F2C811?style=for-the-badge&logo=powerbi&logoColor=black)](https://powerbi.microsoft.com)
-[![Architecture](https://img.shields.io/badge/Architecture-Medallion%20(Bronze%2FSilver%2FGold)-009688?style=for-the-badge)](https://learn.microsoft.com/azure/databricks/lakehouse/medallion)
 
 ---
 
